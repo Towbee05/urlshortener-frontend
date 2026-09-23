@@ -148,7 +148,7 @@ export default function AuthenticationPage(){
                                 Sign up with Google
                             </p>
                         </button>
-                        <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button">
+                        <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button" onClick={() => signIn("github", { callbackUrl: "/" })}>
                             <Image 
                                 src="/image/github.svg"
                                 alt="github logo"
