@@ -4,6 +4,8 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { cookies } from "next/headers";
 
+
+
 const handler = NextAuth({
   providers: [
     GoogleProvider({
@@ -26,7 +28,7 @@ const handler = NextAuth({
         });
         const data = await res.json();
         await forwardRefreshCookie(res);
-        token.accessToken = data.data;
+        token.accessToken = data.data.accessToken;
         return token;
       }
 
@@ -38,7 +40,7 @@ const handler = NextAuth({
         });
         const data = await res.json();
         await forwardRefreshCookie(res);
-        token.accessToken = data.data;
+        token.accessToken = data.data.accessToken;
         return token;
       }
 

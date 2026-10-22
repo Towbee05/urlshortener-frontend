@@ -1,33 +1,93 @@
 "use client";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { authLoginSchema, AuthLoginSchema } from "@/lib/schemas/auth";
+import { SuccessResponse, ErrorResponse } from "@/lib/types";
+import Link from "next/link";
 import Image from "next/image";
 import React, { useState } from "react";
 import PasswordVisibility from "@/components/PasswordVisibility";
-import Link from "next/link";
+import apiClient from "@/lib/api/apiClient";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { signIn } from "next-auth/react";
+import { TokenResponse } from "@/lib/types/auth.types";
 
 export default function AuthenticationPage(){
-    const [showPassword, setShowPassword] = useState(false);
+    const router = useRouter();
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [message, setMessage] = useState<string>("");
+    const [showErrorMessage, setShowErrorMessage] = useState<boolean>(false);
+    const tokenStorageName = "accessToken";
 
-    const toggleShowPassword = (e: React.SubmitEvent<HTMLFormElement>) => {
+    const toggleShowPassword = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
         if (showPassword) {
             setShowPassword(false);
         } else {
             setShowPassword(true);
         }
-    };
+    }; 
+
+    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<AuthLoginSchema>(
+        {
+            resolver: zodResolver(authLoginSchema),
+            defaultValues: {
+                email: "",
+                password: "",
+            }
+        }
+    );
+
+    const viewErrorMessage = (err: string) => {
+        setMessage(err);
+        setShowErrorMessage(true);
+        setTimeout(() => {
+        setMessage("");
+        setShowErrorMessage(false);
+        }, 5000)
+    }
+
+    const onSubmit: SubmitHandler<AuthLoginSchema> = async (data) => {
+        const { email, password } = data;
+        const payload: AuthLoginSchema = {
+            email,
+            password
+        };
+        try {
+            const response = await apiClient.post<SuccessResponse<TokenResponse>>("/api/auth/login", payload);
+            console.log("jixxxx!!!");
+            console.log(response);
+            const { data } = response.data;
+            localStorage.setItem(tokenStorageName, data.accessToken);
+            router.push('/');
+        } catch (err) {
+            console.log(err);
+            if (axios.isAxiosError(err)){
+                const errorData: ErrorResponse = err.response?.data;
+                console.log(errorData);
+                viewErrorMessage(errorData.details);
+            }  else {
+                viewErrorMessage("an unexpected error occured");
+            }
+        }
+    }
 
     return (
-        <form method="post">
+        <form method="post" className="w-full" onSubmit={handleSubmit(onSubmit)}>
+            { showErrorMessage &&
+                <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-black rounded-base bg-red-500" role="alert">
+                    <svg className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                    <p className="capitalize"> {message} </p>
+                </div>
+            }
             <div className="space-y-4">
                 <div className="space-y-4">
                     <h1 className="font-black text-4xl font-playfair">
                         Welcome back
                     </h1>
                     <p>
-                        New to urlshortener? <Link href="/auth/signup" className="italic text-[#0000FF] underline focus:cursor-pointer"> register here </Link>
-                    </p>
-                    <p className="font-sans">
-                        Login to existing account
+                        New to urlshortener? <Link href="/auth/signup" className="italic text-[#0000FF] underline focus:cursor-pointer"> Register now </Link>
                     </p>
                 </div>
                 <div>
@@ -35,18 +95,28 @@ export default function AuthenticationPage(){
                         <label htmlFor="email">
                             Email
                         </label>
-                        <input type="email" name="email" id="email" className="border h-10 px-2 py-1 rounded-md focus:border-2 focus:ring-[#0000FF] focus:border-[#0000FF]" required/>
+                        <input type="email" id="email" className={`border h-10 px-2 py-1 rounded-md focus:border-2 border-black ${errors.email ? "focus:outline-red-500 border-red-500" : "focus:outline-blue-500 border-black"}`} {...register("email")} required/>
+                        { errors.email && 
+                            <p className="text-xs text-red-500 mt-2">
+                                { errors.email.message }
+                            </p>
+                        }
                     </div>
                     <div className="flex flex-col gap-1 pb-3">
                         <label htmlFor="password">
                             Password
                         </label>
                         <div className="w-full flex items-center relative">
-                            <input type={showPassword ? "text" : "password"} name="password" id="password" className="border h-10 px-2 py-1 rounded-md focus:border-2 focus:ring-[#0000FF] focus:border-[#0000FF] w-full" required/>
+                            <input type={showPassword ? "text" : "password"} id="password" className={`border h-10 px-2 py-1 rounded-md focus:border-2 w-full border-black ${errors.password ? "focus:outline-red-500 border-red-500" : "focus:outline-blue-500 border-black"}`} {...register("password")} required/>
                             <button type="button" className="absolute left-[calc(100%-32px)] h-8 w-8 flex items-center justify-center" onClick={(e) => toggleShowPassword(e)}>
                                 <PasswordVisibility className="cursor-pointer" showPassword={showPassword} />
                             </button>
                         </div>
+                        { errors.password &&
+                            <p className="text-xs text-red-500 mt-2">
+                                { errors.password.message }
+                            </p>
+                        }
                     </div>
 
                     <div className="flex justify-center items-center gap-5">
@@ -56,7 +126,7 @@ export default function AuthenticationPage(){
                     </div>
 
                     <div className="space-y-3 mt-5">
-                        <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button">
+                        <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button" onClick={() => signIn("google", { callbackUrl: "/" })}>
                             <Image 
                                 src="/image/google.svg"
                                 alt="google logo"
@@ -67,7 +137,7 @@ export default function AuthenticationPage(){
                                 Sign in with Google
                             </p>
                         </button>
-                        <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button">
+                        <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button" onClick={() => signIn("github", { callbackUrl: "/" })}>
                             <Image 
                                 src="/image/github.svg"
                                 alt="github logo"
@@ -81,8 +151,10 @@ export default function AuthenticationPage(){
                     </div>
                 </div>
                 <div>
-                    <button type="submit" className="w-full text-center bg-[#6082B6] py-2 rounded-md cursor-pointer">
-                        Login
+                    <button type="submit" className="w-full text-center bg-[#6082B6] py-2 rounded-md cursor-pointer" disabled={isSubmitting}>
+                        {
+                            isSubmitting ? "Submitting..." : "Login"
+                        }
                     </button>
                 </div>
             </div>

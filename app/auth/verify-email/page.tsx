@@ -1,14 +1,15 @@
 "use client";
 import OtpInput from "@/components/OtpInput";
-import { VerifyEmailRequest, TokenResponse } from "@/app/types/auth.types";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { VerifyEmailRequest, TokenResponse } from "@/lib/types/auth.types";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import apiClient from "@/lib/api/apiClient";
-import { SuccessResponse, ErrorResponse } from "@/app/types";
+import { SuccessResponse, ErrorResponse } from "@/lib/types";
 import axios from "axios";
 import Link from "next/link";
 
 export default function AuthenticationPage(){
+    
     const router = useRouter();
     const searchParams = useSearchParams();
     const [message, setMessage] = useState<string>("");
@@ -21,6 +22,8 @@ export default function AuthenticationPage(){
         setShowErrorMessage(false);
         }, 5000)
     }
+
+    const tokenStorageName = "accessToken";
     
     const handleSubmit = async (code: string) => {
         const email = searchParams.get("email")
@@ -36,9 +39,8 @@ export default function AuthenticationPage(){
             const response = await apiClient.post<SuccessResponse<TokenResponse>>("/api/auth/verify-email", payload)
             // Store tokens
             const { data } = response.data;
-            localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("refreshToken", data.refreshToken);
-            
+            localStorage.setItem(tokenStorageName, data.accessToken);
+
             console.log(response);
             router.push("/");
 

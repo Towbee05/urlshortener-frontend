@@ -2,7 +2,7 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authRegisterSchema, AuthRegisterSchema } from "@/lib/schemas/auth";
-import { SuccessResponse, ErrorResponse } from "@/app/types";
+import { SuccessResponse, ErrorResponse } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import React, { useState } from "react";
@@ -54,16 +54,20 @@ export default function AuthenticationPage(){
             username,
             password
         };
+        console.log("got to the first part");
         try {
+            console.log("got here");
             const response = await apiClient.post<SuccessResponse<string>>("/api/auth/register", payload);
             console.log("jixxxx!!!");
             console.log(response);
             router.push(`/auth/verify-email?email=${email}`);
         } catch (err) {
+            console.log("got here -- to catch");
+            console.log(err);
             if (axios.isAxiosError(err)){
-                const errorData: ErrorResponse = err.response?.data;
+                const errorData = err.response?.data;
                 console.log(errorData);
-                viewErrorMessage(errorData.details);
+                // viewErrorMessage(errorData.details ?? "some errors occurred");
             }  else {
                 viewErrorMessage("an unexpected error occured");
             }
@@ -71,7 +75,7 @@ export default function AuthenticationPage(){
     }
 
     return (
-        <form method="post" className="w-full" onSubmit={handleSubmit(onSubmit)}>
+        <form method="post" className="w-full" noValidate onSubmit={handleSubmit(onSubmit)}>
             { showErrorMessage &&
                 <div className="flex items-start sm:items-center p-4 mb-4 text-sm text-black rounded-base bg-red-500" role="alert">
                     <svg className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
@@ -145,7 +149,7 @@ export default function AuthenticationPage(){
                                 height={16}
                             ></Image>
                             <p>
-                                Sign up with Google
+                                Sign in with Google
                             </p>
                         </button>
                         <button className="border border-black flex items-center justify-center py-2 gap-3 w-full cursor-pointer" type="button" onClick={() => signIn("github", { callbackUrl: "/" })}>
@@ -156,7 +160,7 @@ export default function AuthenticationPage(){
                                 height={16}
                             ></Image>
                             <p>
-                                Sign up with Github
+                                Sign in with Github
                             </p>
                         </button>
                     </div>

@@ -1,69 +1,89 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { Sidebar } from "@/components/analytics/Sidebar";
+import { TopBar } from "@/components/analytics/Topbar";
+import { StatCard } from "@/components/analytics/StatCard";
+import { ClicksOverTimeChart } from "@/components/analytics/ClickOverTimeChart";
+import { DeviceDonut } from "@/components/analytics/DeviceDonut";
+import { RankedList } from "@/components/analytics/RankedList";
+import { RecentClicksTable } from "@/components/analytics/RecentClicksTable";
+
+export default function AnalyticsPage({
+  params,
+}: {
+  params: { shortCode: string };
+}) {
+  const [range, setRange] = useState<"24h" | "7d" | "30d">("7d");
+  const data = useAnalytics(params.shortCode);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-25"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/8">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-39.5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-3.5 w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/8 px-5 transition-colors hover:border-transparent hover:bg-black/4 dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-39.5"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="flex h-screen bg-[#F7F7F6]">
+      <Sidebar />
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopBar shortCode={params.shortCode} isLive={!!data} />
+
+        <main className="flex-1 overflow-y-auto px-6 py-6">
+          {!data ? (
+            <div className="flex h-full items-center justify-center text-sm text-[#71717A]">
+              Loading analytics…
+            </div>
+          ) : (
+            <div className="mx-auto max-w-6xl space-y-5">
+              <div>
+                <h1 className="text-[22px] font-semibold text-[#18181B]">
+                  Link analytics
+                </h1>
+                <p className="mt-0.5 truncate text-sm text-[#71717A]">
+                  {data.link.originalUrl}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
+                <StatCard label="Total clicks" value={data.overview.totalClicks} />
+                <StatCard
+                  label="Unique visitors"
+                  value={data.overview.uniqueVisitors}
+                />
+                <StatCard label="Last 24h" value={data.overview.clicksLast24h} />
+                <StatCard label="Last 7d" value={data.overview.clicksLast7d} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <ClicksOverTimeChart
+                    points={data.clicksOverTime}
+                    range={range}
+                    onRangeChange={setRange}
+                  />
+                </div>
+                <DeviceDonut devices={data.devices} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <RankedList
+                  title="Referrers"
+                  items={data.referrers.map((r) => ({
+                    label: r.referrer || "Direct",
+                    count: r.count,
+                  }))}
+                />
+                <RankedList
+                  title="Geography"
+                  items={data.geography.map((g) => ({
+                    label: g.city ? `${g.city}, ${g.country}` : g.country,
+                    count: g.count,
+                  }))}
+                />
+              </div>
+
+              <RecentClicksTable clicks={data.recentClicks} />
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,9 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 }
 
 interface RefreshResponse {
-    accessToken: string
+    data: {
+        accessToken: string;
+    }
 }
 
 const apiClient = axios.create({
@@ -18,16 +20,23 @@ const apiClient = axios.create({
 let refreshPromise : Promise<string> | null = null;
 
 const getNewAccessToken = async () => {
-    if (!refreshPromise) {
-        refreshPromise = apiClient.post<RefreshResponse>(`/api/auth/refresh-token`, {  }, { withCredentials: true })
-        .then(( {data} ) => {
-            localStorage.setItem('accessToken', data.accessToken);
-            return data.accessToken;
-        })
-        .finally(() => { refreshPromise = null });
-    }
-    return refreshPromise;
-}
+  if (!refreshPromise) {
+    refreshPromise = apiClient
+      .post<RefreshResponse>(`/api/auth/refresh-token`, {}, { withCredentials: true })
+      .then(({ data }) => {
+        const token = data.data.accessToken;
+        if (!token) {
+          throw new Error("Refresh response contained no access token");
+        }
+        localStorage.setItem("accessToken", token);
+        return token;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+};
 
 apiClient.interceptors.request.use((config) => {
     const accessToken = localStorage.getItem("accessToken");
@@ -49,6 +58,7 @@ apiClient.interceptors.response.use(
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`;
                 return apiClient(originalRequest);
             } catch (err) {
+                console.log(err);
                 const refreshError = err as AxiosError;
                 const status = refreshError.response?.status;
 

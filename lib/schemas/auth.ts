@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { email, z } from "zod";
 
 export const authRegisterSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
@@ -10,4 +10,10 @@ export const authRegisterSchema = z.object({
     .regex(/[0-9]/, "Must contain at least one number")
 });
 
+export const authLoginSchema = z.object({
+    email: z.email("Invalid email address"),
+    password: z.string()
+});
+
 export type AuthRegisterSchema = z.infer<typeof authRegisterSchema>;
+export type AuthLoginSchema = z.infer<typeof authLoginSchema>;
